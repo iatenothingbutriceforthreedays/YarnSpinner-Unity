@@ -11,7 +11,7 @@ namespace Yarn.Unity
     /// and optionally rewrites the marker and its children into a new form.
     /// </summary>
     /// <seealso cref="LineProviderBehaviour"/>
-    public abstract class AttributeMarkerProcessor : MonoBehaviour, IAttributeMarkerProcessor
+    public abstract class ReplacementMarkupHandler : MonoBehaviour, IAttributeMarkerProcessor
     {
         /// <summary>
         /// An empty collection of diagnostics.
