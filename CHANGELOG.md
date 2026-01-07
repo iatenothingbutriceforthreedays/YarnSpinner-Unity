@@ -8,6 +8,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
+- When using the Unity Localization package Yarn Spinner can now sort the localisation tables based on a lines position in the file.
+    - This resolves an issue where lines added into the middle of a Yarn file however this does require sorting your localisation table every time you edit your Yarn files
+    - Defaults to off, can be changed in Yarn Spinners settings in `Edit -> Project Settings -> Yarn Spinner`
+    - Will log any values found in the localisation table that didn't come from your Yarn files and sort them to the top of the table
+
 ### Changed
 
 - `YarnProjectImporter` now updates asset addresses and generates the C# variable storage class after the project import completes, rather than during the import.
