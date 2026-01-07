@@ -40,6 +40,8 @@ namespace Yarn.Unity.Editor
                 minorVersion = value.minor;
             }
         }
+        public bool sortLocalisationValuesInsideStringTable = false;
+
         private int majorVersion = 0;
         private int minorVersion = 0;
 
@@ -49,6 +51,7 @@ namespace Yarn.Unity.Editor
         private const string enableDirectLinkToVSCodeKey = "enableDirectLinkToVSCode";
         private const string majorVersionKey = "majorVersion";
         private const string minorVersionKey = "minorVersion";
+        private const string sortLocalisationValuesInsideStringTableKey = "sortLocalisationValuesInsideStringTable";
 
         internal static YarnSpinnerProjectSettings GetOrCreateSettings(string? path = null, Yarn.Unity.ILogger? iLogger = null)
         {
@@ -80,6 +83,7 @@ namespace Yarn.Unity.Editor
             settings.generateYSLSFile = false;
             settings.majorVersion = 0;
             settings.minorVersion = 0;
+            settings.sortLocalisationValuesInsideStringTable = false;
             settings.WriteSettings(path, logger);
 
             return settings;
@@ -119,6 +123,7 @@ namespace Yarn.Unity.Editor
                 bool enableDirectLinkToVSCode = GetValueOrDefault(enableDirectLinkToVSCodeKey, false);
                 int major = GetValueOrDefault(majorVersionKey, 0);
                 int minor = GetValueOrDefault(minorVersionKey, 0);
+                bool sortLocalisationValuesInsideStringTable = GetValueOrDefault(sortLocalisationValuesInsideStringTableKey, false);
 
                 settings.automaticallyLinkAttributedYarnCommandsAndFunctions = automaticallyLinkAttributedYarnCommandsAndFunctions;
                 settings.autoRefreshLocalisedAssets = autoRefreshLocalisedAssets;
@@ -126,6 +131,7 @@ namespace Yarn.Unity.Editor
                 settings.enableDirectLinkToVSCode = enableDirectLinkToVSCode;
                 settings.majorVersion = major;
                 settings.minorVersion = minor;
+                settings.sortLocalisationValuesInsideStringTable = sortLocalisationValuesInsideStringTable;
             }
             catch (System.Exception ex)
             {

@@ -1311,6 +1311,44 @@ namespace Yarn.Unity.Editor
                 }
             }
 
+            if (YarnSpinnerProjectSettings.GetOrCreateSettings().sortLocalisationValuesInsideStringTable)
+            {
+                // sorting the table based on file and line number
+                Dictionary<string, string> sortKeys = new();
+                foreach (var pair in stringTable)
+                {
+                    sortKeys[pair.Key] = $"{pair.Value.fileName.ToLower()}-{string.Format("{0:D6}", pair.Value.lineNumber)}";
+                }
+
+                HashSet<string> invalidKeys = new();
+                unityStringTable.SharedData.Entries.Sort((a,b) =>
+                {
+                    // if we encounter a key that doesn't match a value we got from the string table we want to log this and push it to one end
+                    if (sortKeys.TryGetValue(unityStringTable.GetEntry(a.Id).Key, out var aKey))
+                    {
+                        if (sortKeys.TryGetValue(unityStringTable.GetEntry(b.Id).Key, out var bKey))
+                        {
+                            return aKey.CompareTo(bKey);
+                        }
+                        else
+                        {
+                            invalidKeys.Add(unityStringTable.GetEntry(b.Id).Key);
+                            return 1;
+                        }
+                    }
+                    else
+                    {
+                        invalidKeys.Add(unityStringTable.GetEntry(a.Id).Key);
+                        return -1;
+                    }
+                });
+                // now that the table is sorted we want to log any invalid entries we might have found
+                foreach (var key in invalidKeys)
+                {
+                    Debug.LogWarning($"Encountered an ID in the Yarn string table \"{key}\" during import that didn't come from the Yarn Project.");
+                }
+            }
+
             // We've made changes to the table, so flag it and its shared data
             // as dirty.
             EditorUtility.SetDirty(unityStringTable);
