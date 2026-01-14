@@ -12,10 +12,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     - This resolves an issue where lines added into the middle of a Yarn file however this does require sorting your localisation table every time you edit your Yarn files
     - Defaults to off, can be changed in Yarn Spinners settings in `Edit -> Project Settings -> Yarn Spinner`
     - Will log any values found in the localisation table that didn't come from your Yarn files and sort them to the top of the table
+- `YarnSpinnerAssemblyGeneratedYSLSPath` function to the `YarnSpinnerProjectSettings` so that each assembly can have a generated and consistent path.
 
 ### Changed
 
 - `YarnProjectImporter` now updates asset addresses and generates the C# variable storage class after the project import completes, rather than during the import.
+- Each assembly now gets it's own YSLS file when generating them.
+  - renamed the test asmdef files from `YarnSpinnerTests.x` to `YarnSpinner.Unity.Tests.X` so that they are matched by the existing filters.
 
 ### Removed
 

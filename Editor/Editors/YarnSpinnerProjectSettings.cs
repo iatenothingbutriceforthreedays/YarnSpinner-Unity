@@ -24,6 +24,11 @@ namespace Yarn.Unity.Editor
         public static string YarnSpinnerProjectSettingsPath => Path.Combine("ProjectSettings", "Packages", "dev.yarnspinner", "YarnSpinnerProjectSettings.json");
         public static string YarnSpinnerGeneratedYSLSPath => Path.Combine("ProjectSettings", "Packages", "dev.yarnspinner", "generated.ysls.json");
 
+        public static string YarnSpinnerAssemblyGeneratedYSLSPath(string assemblyName)
+        {
+            return Path.Combine("ProjectSettings", "Packages", "dev.yarnspinner", $"{assemblyName}-generated.ysls.json");
+        }
+
         public bool autoRefreshLocalisedAssets = true;
         public bool automaticallyLinkAttributedYarnCommandsAndFunctions = true;
         public bool generateYSLSFile = false;

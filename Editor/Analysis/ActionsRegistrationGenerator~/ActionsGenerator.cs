@@ -88,13 +88,10 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
         using var output = GetOutput(context);
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-
         output.WriteLine(DateTime.Now);
-
 
         Yarn.Unity.Editor.YarnSpinnerProjectSettings? settings = null;
         var projectPath = GetProjectRoot(context);
-
 
         if (projectPath != null)
         {
@@ -208,13 +205,11 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
                 actions.AddRange(Analyser.GetActions(compilation, tree, output));
             }
 
-            if (actions.Any() == false)
+            if (actions.Count() == 0)
             {
                 output.WriteLine($"Didn't find any Yarn Actions in {context.Compilation.AssemblyName}. Not generating any source code for it.");
                 return;
             }
-
-
 
             HashSet<string> removals = new HashSet<string>();
             // validating and logging all the actions
@@ -304,7 +299,7 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
                     {
                         output.Write($"Writing generated ysls...");
 
-                        var fullPath = Path.Combine(projectPath, Yarn.Unity.Editor.YarnSpinnerProjectSettings.YarnSpinnerGeneratedYSLSPath);
+                        var fullPath = Path.Combine(projectPath, Yarn.Unity.Editor.YarnSpinnerProjectSettings.YarnSpinnerAssemblyGeneratedYSLSPath(compilation.AssemblyName));
                         try
                         {
                             System.IO.File.WriteAllText(fullPath, ysls);

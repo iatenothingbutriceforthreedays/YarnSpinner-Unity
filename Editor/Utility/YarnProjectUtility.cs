@@ -657,6 +657,7 @@ namespace Yarn.Unity.Editor
         public static bool OnOpenAsset(int instanceID)
         {
             var path = AssetDatabase.GetAssetPath(instanceID);
+
             var project = AssetDatabase.LoadAssetAtPath<YarnProject>(path);
 
             if (project == null)
