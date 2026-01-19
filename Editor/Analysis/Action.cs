@@ -13,13 +13,11 @@ using System.Linq;
 
 namespace Yarn.Unity.ActionAnalyser
 {
-
     public struct Position
     {
         public int Line;
         public int Column;
     }
-
 
     public struct Range
     {
@@ -44,7 +42,6 @@ namespace Yarn.Unity.ActionAnalyser
             };
         }
     }
-
 
     public enum ActionType
     {
@@ -101,6 +98,11 @@ namespace Yarn.Unity.ActionAnalyser
         /// The action operates asynchronously using a coroutine.
         /// </summary>
         AsyncCoroutine,
+
+        /// <summary>
+        /// The action operates asynchronously through c# async infrastructure
+        /// </summary>
+        AsyncTask,
     }
 
     static class ITypeSymbolExtension
@@ -236,6 +238,7 @@ namespace Yarn.Unity.ActionAnalyser
                 result["Documentation"] = this.Description;
             }
             result["Language"] = "csharp";
+            result["Async"] = this.AsyncType != AsyncType.Sync;
 
             if (this.Declaration != null)
             {

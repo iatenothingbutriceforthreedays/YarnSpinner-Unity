@@ -164,7 +164,6 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
                 return;
             }
 
-
             // Don't generate source code for certain Yarn Spinner provided
             // assemblies - these always manually register any actions in them.
             var prefixesToIgnore = new List<string>()

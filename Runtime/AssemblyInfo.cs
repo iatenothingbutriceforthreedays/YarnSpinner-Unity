@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyVersion("3.1.4.0")]
 [assembly: AssemblyFileVersion("3.1.4.0")]
 [assembly: AssemblyInformationalVersion("3.1.4.Branch.hotfix/textanim-build-errors.Sha.c2b119c5eda7fdd3cd0b13a689f95d54d456fb69")]
-[assembly: InternalsVisibleTo("YarnSpinnerTests")]
-[assembly: InternalsVisibleTo("YarnSpinner.Editor.Tests")]
+[assembly: InternalsVisibleTo("YarnSpinner.Unity.Tests")]
+[assembly: InternalsVisibleTo("YarnSpinner.Unity.Tests.Editor")]
 [assembly: InternalsVisibleTo("YarnSpinner.Unity.Editor")]
 

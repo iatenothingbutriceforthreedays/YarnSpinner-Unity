@@ -10,12 +10,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 #nullable enable
 
 namespace Yarn.Unity.ActionAnalyser
 {
-
     static class EnumerableExtensions
     {
         private struct Comparer<TItem, TKey> : IEqualityComparer<TItem>
@@ -462,10 +462,10 @@ namespace Yarn.Unity.ActionAnalyser
                 return Array.Empty<Action>();
             }
 
-            return GetAttributeActions(root, model, logger).Concat(GetRuntimeDefinedActions(root, model));
+            return GetAttributeActions(root, model, logger).Concat(GetRuntimeDefinedActions(root, model, logger));
         }
 
-        private static IEnumerable<Action> GetRuntimeDefinedActions(CompilationUnitSyntax root, SemanticModel model)
+        private static IEnumerable<Action> GetRuntimeDefinedActions(CompilationUnitSyntax root, SemanticModel model, ILogger? logger)
         {
             var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
             classes = classes.Where(c =>
@@ -565,7 +565,7 @@ namespace Yarn.Unity.ActionAnalyser
 
                 var declaringSyntax = targetSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
 
-                TryGetDocumentation(targetSymbol, out XElement? documentationXML, out string? summary);
+                TryGetDocumentation(targetSymbol, logger, out XElement? documentationXML, out string? summary);
 
                 yield return new Action(name, methodCall.Type, targetSymbol)
                 {
@@ -581,24 +581,88 @@ namespace Yarn.Unity.ActionAnalyser
             }
         }
 
-        private static bool TryGetDocumentation(IMethodSymbol targetSymbol, out XElement? documentationXML, out string? summary)
+        private static bool TryGetDocumentation(IMethodSymbol targetSymbol, ILogger? logger, out XElement? documentationXML, out string? summary)
         {
             documentationXML = null;
             summary = null;
-            try
+
+            var documentationComments = targetSymbol.GetDocumentationCommentXml();
+            if (string.IsNullOrEmpty(documentationComments))
             {
-                var documentationComments = targetSymbol.GetDocumentationCommentXml();
-                documentationXML = XElement.Parse(documentationComments);
-                var summaryNode = documentationXML.Element("summary");
+                documentationComments = null;
+                logger?.WriteLine($"Unable to find any xml documentation for {targetSymbol.Name}, attempting to load it syntactically instead.");
+
+                foreach (var reference in targetSymbol.DeclaringSyntaxReferences)
+                {
+                    var method = reference.GetSyntax() as MethodDeclarationSyntax;
+                    if (method != null)
+                    {
+                        var comment = GetActionTrivia(method, logger);
+                        if (!string.IsNullOrEmpty(comment))
+                        {
+                            documentationComments = comment;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // at this point we still don't have a doc string
+            // going to have to just give up
+            if (documentationComments == null || string.IsNullOrWhiteSpace(documentationComments))
+            {
+                logger?.WriteLine($"Unable to find any xml documentation for {targetSymbol.Name}, syntactically either.");
+                return false;
+            }
+            logger?.WriteLine($"Found a potential documentation candidate:\"{documentationComments}\"");
+
+            // there are three different situations:
+            // 1. This is a correctly structured docs string that has come from GetDocumentationCommentXml
+            if (TryGetXMLFromDocumentString(documentationComments, out documentationXML, logger))
+            {
+                var summaryNode = documentationXML?.Element("summary");
                 if (summaryNode != null)
                 {
                     summary = string.Join("", summaryNode.DescendantNodes().OfType<XText>().Select(n => n.ToString())).Trim();
+                    logger?.WriteLine("Found the GetDocumentationCommentXml comments and parsed it successfully");
+
+                    return true;
                 }
+            }
+
+            // 2. This is a syntactically determined string that happens to also be XML, but it will be missing the synthesised member root
+            // so we add the missing root node on and try again
+            if (TryGetXMLFromDocumentString($"<member name=\"M:{targetSymbol.ToString()}\">{documentationComments}</member>", out documentationXML, logger))
+            {
+                // so we wrap this node and try again
+                var summaryNode = documentationXML?.Element("summary");
+                if (summaryNode != null)
+                {
+                    summary = string.Join("", summaryNode.DescendantNodes().OfType<XText>().Select(n => n.ToString())).Trim();
+                    logger?.WriteLine("Found the unrooted XML comments and parsed it successfully");
+
+                    return true;
+                }
+            }
+
+            // 3. This is not doc XML and just happens to be a comment above a command/function
+            summary = documentationComments;
+            logger?.WriteLine("Unable to determine XML, returning the comment as is");
+            return true;
+        }
+
+        private static bool TryGetXMLFromDocumentString(string comment, out XElement? element, ILogger? logger)
+        {
+            try
+            {
+                element = XElement.Parse(comment);
                 return true;
             }
-            catch (System.Xml.XmlException)
+            catch (System.Xml.XmlException ex)
             {
-                // XML parse error; no documentation available
+                logger?.WriteLine("Failed to parse comments as XML");
+                logger?.WriteException(ex);
+                element = null;
                 return false;
             }
         }
@@ -677,7 +741,7 @@ namespace Yarn.Unity.ActionAnalyser
                     continue;
                 }
 
-                TryGetDocumentation(methodSymbol, out XElement? documentationXML, out string? summary);
+                TryGetDocumentation(methodSymbol, logger, out XElement? documentationXML, out string? summary);
 
                 var containerName = container?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? "<unknown>";
 
@@ -729,10 +793,19 @@ namespace Yarn.Unity.ActionAnalyser
                 return AsyncType.MaybeAsyncCoroutine;
             }
 
-            // If it's anything else, then this action is invalid. Return the
-            // default value; other parts of the action detection process will throw
-            // errors.
-            return default;
+            // now checking for the various different awaiter types
+            // later on it might be worth seeing if there is a good way to check if the return type is something that can be awaited
+            // but we only have four types so it's probably fine this way
+            switch (returnType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
+            {
+                case "global::Yarn.Unity.YarnTask":
+                case "global::System.Threading.Tasks.Task":
+                case "global::Cysharp.Threading.Tasks.UniTask": // double check this one
+                case "global::UnityEngine.Awaitable":
+                    return AsyncType.AsyncTask;
+                default:
+                    return default;
+            };
         }
 
         private static IEnumerable<Parameter> GetParameters(IMethodSymbol symbol, XElement? documentationXML)
@@ -754,7 +827,6 @@ namespace Yarn.Unity.ActionAnalyser
                     if (!parameterDocumentation.ContainsKey(name.Value))
                     {
                         parameterDocumentation.Add(name.Value, text);
-
                     }
                 }
             }
@@ -881,7 +953,7 @@ namespace Yarn.Unity.ActionAnalyser
 
         // these are basically just ripped straight from the LSP
         // should maybe look at making these more accessible, for now the code dupe is fine IMO
-        public static string? GetActionTrivia(MethodDeclarationSyntax method, ILogger logger)
+        public static string? GetActionTrivia(MethodDeclarationSyntax method, ILogger? logger)
         {
             // The main string to use as the function's documentation.
             if (method.HasLeadingTrivia)
@@ -892,7 +964,7 @@ namespace Yarn.Unity.ActionAnalyser
                 {
                     // The method contains structured trivia. Extract the
                     // documentation for it.
-                    logger.WriteLine("trivia is structured");
+                    logger?.WriteLine($"trivia for {method.Identifier} is structured");
                     return GetDocumentationFromStructuredTrivia(structuredTrivia);
                 }
                 else
@@ -900,16 +972,17 @@ namespace Yarn.Unity.ActionAnalyser
                     // There isn't any structured trivia, but perhaps there's a
                     // comment above the method, which we can use as our
                     // documentation.
-                    logger.WriteLine("trivia is unstructured");
-                    return GetDocumentationFromUnstructuredTrivia(trivias);
+                    logger?.WriteLine($"trivia for {method.Identifier} is unstructured");
+                    return GetDocumentationFromUnstructuredTrivia(trivias, logger);
                 }
             }
             else
             {
+                logger?.WriteLine($"{method.Identifier} has no trivia");
                 return null;
             }
         }
-        private static string GetDocumentationFromUnstructuredTrivia(SyntaxTriviaList trivias)
+        private static string GetDocumentationFromUnstructuredTrivia(SyntaxTriviaList trivias, ILogger? logger)
         {
             string documentation;
             bool emptyLineFlag = false;
@@ -923,7 +996,11 @@ namespace Yarn.Unity.ActionAnalyser
                 {
                     case SyntaxKind.EndOfLineTrivia:
                         // if we hit two lines in a row without a comment/attribute inbetween, we're done collecting trivia
-                        if (emptyLineFlag == true) { doneWithTrivia = true; }
+                        if (emptyLineFlag == true)
+                        {
+                            logger?.WriteLine("have hit two empty lines in a row, done collecting unstructured trivia");
+                            doneWithTrivia = true;
+                        }
                         emptyLineFlag = true;
                         break;
                     case SyntaxKind.WhitespaceTrivia:

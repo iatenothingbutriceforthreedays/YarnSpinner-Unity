@@ -10,4 +10,4 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyInformationalVersion("3.1.4.Branch.hotfix/textanim-build-errors.Sha.c2b119c5eda7fdd3cd0b13a689f95d54d456fb69")]
 
 [assembly: InternalsVisibleTo("YarnSpinner.Unity.Editor")]
-[assembly: InternalsVisibleTo("YarnSpinner.Editor.Tests")]
+[assembly: InternalsVisibleTo("YarnSpinner.Unity.Tests.Editor")]
