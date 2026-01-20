@@ -574,7 +574,7 @@ namespace Yarn.Unity.ActionAnalyser
                     MethodDeclarationSyntax = declaringSyntax,
                     Declaration = declaringSyntax,
                     Description = summary,
-                    Parameters = new List<Parameter>(GetParameters(targetSymbol, documentationXML)),
+                    Parameters = GetParams(targetSymbol, documentationXML, logger),
                     SourceFileName = root.SyntaxTree.FilePath,
                     DeclarationType = DeclarationType.DirectRegistration,
                 };
@@ -755,7 +755,7 @@ namespace Yarn.Unity.ActionAnalyser
                     MethodDeclarationSyntax = methodInfo.MethodDeclaration,
                     IsStatic = methodSymbol.IsStatic,
                     Declaration = methodInfo.MethodDeclaration,
-                    Parameters = new List<Parameter>(GetParameters(methodSymbol, documentationXML)),
+                    Parameters = GetParams(methodSymbol, documentationXML, logger),
                     AsyncType = GetAsyncType(methodSymbol),
                     SemanticModel = model,
                     Description = summary,
@@ -800,7 +800,7 @@ namespace Yarn.Unity.ActionAnalyser
             {
                 case "global::Yarn.Unity.YarnTask":
                 case "global::System.Threading.Tasks.Task":
-                case "global::Cysharp.Threading.Tasks.UniTask": // double check this one
+                case "global::Cysharp.Threading.Tasks.UniTask":
                 case "global::UnityEngine.Awaitable":
                     return AsyncType.AsyncTask;
                 default:
@@ -808,8 +808,38 @@ namespace Yarn.Unity.ActionAnalyser
             };
         }
 
-        private static IEnumerable<Parameter> GetParameters(IMethodSymbol symbol, XElement? documentationXML)
+        private static List<Parameter> GetParams(IMethodSymbol symbol, XElement? documentationXML, ILogger? logger)
         {
+            List<Parameter> parameters = new List<Parameter>();
+
+            // if this is an instance command registered via the yarn attribute we need to do an extra step
+            // we will need to create and add in a new parameter to the front of the parameters list
+            // to represent the game object that we will do a lookup for
+            var isAttributeRegistered = symbol.GetAttributes().Where(a => a.AttributeClass?.Name == "YarnCommandAttribute").Count() > 0;
+            if (isAttributeRegistered && !symbol.IsStatic)
+            {
+                logger?.WriteLine("Command has been registered via the attribute, will be adding a target parameter.");
+                var p = new Parameter
+                {
+                    Name = "target",
+                    IsOptional = false,
+                    Type = symbol.ContainingType,
+                    Description = "The name of the Game Object the runner will search for to run this command upon. This will be done through a normal GameObject.Find Unity call.",
+                    IsParamsArray = false,
+                };
+                parameters.Insert(0, p);
+            }
+
+            if (symbol.Parameters.Count() > 0)
+            {    
+                logger?.WriteLine($"Processing {symbol.Name} parameters");
+            }
+            else
+            {
+                logger?.WriteLine($"{symbol.Name} has no parameters");
+                return parameters;
+            }
+
             var parameterDocumentation = new Dictionary<string, string>();
 
             if (documentationXML != null)
@@ -833,8 +863,10 @@ namespace Yarn.Unity.ActionAnalyser
 
             foreach (var param in symbol.Parameters)
             {
+                logger?.WriteLine($"\t{param.Name} is a {param.Type.ToDisplayString()}");
+
                 parameterDocumentation.TryGetValue(param.Name, out var paramDoc);
-                yield return new Parameter
+                var p = new Parameter
                 {
                     Name = param.Name,
                     IsOptional = param.IsOptional,
@@ -843,7 +875,10 @@ namespace Yarn.Unity.ActionAnalyser
                     IsParamsArray = param.IsParams,
                     DefaultValueString = param.HasExplicitDefaultValue ? param.ExplicitDefaultValue?.ToString() : null,
                 };
+                parameters.Add(p);
             }
+
+            return parameters;
         }
 
         internal static bool IsAttributeYarnCommand(AttributeData attribute)

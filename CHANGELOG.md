@@ -9,10 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Added
 
 - When using the Unity Localization package Yarn Spinner can now sort the localisation tables based on a lines position in the file.
-    - This resolves an issue where lines added into the middle of a Yarn file however this does require sorting your localisation table every time you edit your Yarn files
-    - Defaults to off, can be changed in Yarn Spinners settings in `Edit -> Project Settings -> Yarn Spinner`
-    - Will log any values found in the localisation table that didn't come from your Yarn files and sort them to the top of the table
+  - This resolves an issue where lines added into the middle of a Yarn file however this does require sorting your localisation table every time you edit your Yarn files
+  - Defaults to off, can be changed in Yarn Spinners settings in `Edit -> Project Settings -> Yarn Spinner`
+  - Will log any values found in the localisation table that didn't come from your Yarn files and sort them to the top of the table
 - `YarnSpinnerAssemblyGeneratedYSLSPath` function to the `YarnSpinnerProjectSettings` so that each assembly can have a generated and consistent path.
+- Generated YSLS file now includes subtype information for instance commands
+  - This means a command like `<<move gary left>>` now knows that the `"gary"` is the name of a game object and the specific game object subclass
+  - Only works at a single level of monobehaviour depth, subclasses of a monobehaviour subclass will not be recognised
 
 ### Changed
 

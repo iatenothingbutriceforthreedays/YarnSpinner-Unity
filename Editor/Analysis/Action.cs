@@ -275,7 +275,20 @@ namespace Yarn.Unity.ActionAnalyser
                     paramObject["DefaultValue"] = p.DefaultValueString;
                 }
                 paramObject["IsParamsArray"] = p.IsParamsArray;
-                paramObject["Type"] = p.YarnTypeString;
+
+                // there are two special cases for parameters
+                // if it is a subclass of UnityEngine.Component or MonoBehaviour we additionally add the subtype
+                // this is used by the editor later on to let the writer know WHERE the command will be going
+                // otherwise we just add the Yarn type of the parameter
+                if (p.Type.BaseType?.Name == "MonoBehaviour" || p.Type.BaseType?.Name == "Component")
+                {
+                    paramObject["Type"] = "instance";
+                    paramObject["SubType"] = p.Type.Name;
+                }
+                else
+                {
+                    paramObject["Type"] = p.YarnTypeString;
+                }
 
                 return paramObject;
             }).ToArray());
