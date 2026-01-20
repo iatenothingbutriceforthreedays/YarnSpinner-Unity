@@ -865,6 +865,16 @@ namespace Yarn.Unity.ActionAnalyser
             {
                 logger?.WriteLine($"\t{param.Name} is a {param.Type.ToDisplayString()}");
 
+                List<AttributeData> attributes = new List<AttributeData>();
+                foreach (var attribute in param.GetAttributes())
+                {
+                    if (attribute.AttributeClass?.BaseType?.Name == "YarnParameterAttribute")
+                    {
+                        logger?.WriteLine($"\t\tattribute: {attribute.AttributeClass?.Name}");
+                        attributes.Add(attribute);
+                    }
+                }
+
                 parameterDocumentation.TryGetValue(param.Name, out var paramDoc);
                 var p = new Parameter
                 {
@@ -873,6 +883,7 @@ namespace Yarn.Unity.ActionAnalyser
                     Type = param.Type,
                     Description = paramDoc,
                     IsParamsArray = param.IsParams,
+                    Attributes = attributes.Count() == 0 ? null : attributes.ToArray(),
                     DefaultValueString = param.HasExplicitDefaultValue ? param.ExplicitDefaultValue?.ToString() : null,
                 };
                 parameters.Add(p);

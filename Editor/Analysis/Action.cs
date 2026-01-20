@@ -138,6 +138,8 @@ namespace Yarn.Unity.ActionAnalyser
         public string? DefaultValueString;
         public bool IsParamsArray;
 
+        public AttributeData[]? Attributes;
+
         public readonly string? YarnTypeString => Type.GetYarnTypeString();
     }
 
@@ -287,7 +289,17 @@ namespace Yarn.Unity.ActionAnalyser
                 }
                 else
                 {
-                    paramObject["Type"] = p.YarnTypeString;
+                    // there is one special case of the regular types
+                    // if the parameter has the YarnNodeParameterAttribute on it then we want to say it's a node and not a string
+                    var isANodeType = p.Attributes?.Count(a => a.AttributeClass?.Name == "YarnNodeParameterAttribute") > 0;
+                    if (isANodeType && p.Type.SpecialType == SpecialType.System_String)
+                    {
+                        paramObject["Type"] = "node";
+                    }
+                    else
+                    {
+                        paramObject["Type"] = p.YarnTypeString;
+                    }
                 }
 
                 return paramObject;
