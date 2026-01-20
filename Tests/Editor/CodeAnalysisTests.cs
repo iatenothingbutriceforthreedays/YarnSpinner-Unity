@@ -124,15 +124,19 @@ namespace Yarn.Unity.Tests
 
                 documentedAttributeAction.Description.Should().BeEqualTo("An instance action with two parameters, one of which is optional.");
 
-                documentedAttributeAction.Parameters[0].Name.Should().BeEqualTo("param");
-                documentedAttributeAction.Parameters[0].Description.Should().BeEqualTo("The first, non-optional parameter.");
+                // testing for the synthesised target parameter
+                documentedAttributeAction.Parameters[0].Name.Should().BeEqualTo("target");
                 documentedAttributeAction.Parameters[0].IsOptional.Should().BeFalse();
-                documentedAttributeAction.Parameters[0].DefaultValueString.Should().BeNull();
 
-                documentedAttributeAction.Parameters[1].Name.Should().BeEqualTo("param2");
-                documentedAttributeAction.Parameters[1].Description.Should().BeEqualTo("The second, optional parameter.");
-                documentedAttributeAction.Parameters[1].IsOptional.Should().BeTrue();
-                documentedAttributeAction.Parameters[1].DefaultValueString.Should().BeEqualTo("0");
+                documentedAttributeAction.Parameters[1].Name.Should().BeEqualTo("param");
+                documentedAttributeAction.Parameters[1].Description.Should().BeEqualTo("The first, non-optional parameter.");
+                documentedAttributeAction.Parameters[1].IsOptional.Should().BeFalse();
+                documentedAttributeAction.Parameters[1].DefaultValueString.Should().BeNull();
+
+                documentedAttributeAction.Parameters[2].Name.Should().BeEqualTo("param2");
+                documentedAttributeAction.Parameters[2].Description.Should().BeEqualTo("The second, optional parameter.");
+                documentedAttributeAction.Parameters[2].IsOptional.Should().BeTrue();
+                documentedAttributeAction.Parameters[2].DefaultValueString.Should().BeEqualTo("0");
 
                 var documentedDirectAction = actions.Single(a => a.Name == "direct_register_method_fixed_params");
                 documentedDirectAction.Description.Should().BeEqualTo("A directly-registered method.");
