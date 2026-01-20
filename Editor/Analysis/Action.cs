@@ -226,6 +226,7 @@ namespace Yarn.Unity.ActionAnalyser
         /// </summary>
         public List<Parameter> Parameters = new List<Parameter>();
 
+        public string? ReturnDescription;
         public string? YarnReturnTypeString => this.MethodSymbol.ReturnType.GetYarnTypeString();
 
         public string ToJSON()
@@ -307,7 +308,14 @@ namespace Yarn.Unity.ActionAnalyser
 
             if (this.Type == ActionType.Function)
             {
-                result["ReturnType"] = this.YarnReturnTypeString;
+                var retvrn = new Dictionary<string, string>();
+                retvrn["Type"] = this.YarnReturnTypeString ?? "error";
+
+                if (!string.IsNullOrWhiteSpace(this.ReturnDescription))
+                {
+                    retvrn["Description"] = this.ReturnDescription;
+                }
+                result["Return"] = retvrn;
             }
 
             return Yarn.Unity.Editor.Json.Serialize(result);

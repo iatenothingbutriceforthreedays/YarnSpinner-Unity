@@ -565,7 +565,16 @@ namespace Yarn.Unity.ActionAnalyser
 
                 var declaringSyntax = targetSymbol.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax();
 
-                TryGetDocumentation(targetSymbol, logger, out XElement? documentationXML, out string? summary);
+                string? ReturnDescription = null;
+                if (TryGetDocumentation(targetSymbol, logger, out XElement? documentationXML, out string? summary))
+                {
+                    var returnNode = documentationXML?.Element("returns");
+                    if (returnNode != null)
+                    {
+                        ReturnDescription = string.Join("", returnNode.DescendantNodes().OfType<XText>().Select(n => n.ToString())).Trim();
+                        logger?.WriteLine($"\tFound a return: {ReturnDescription}");
+                    }
+                }
 
                 yield return new Action(name, methodCall.Type, targetSymbol)
                 {
@@ -577,6 +586,7 @@ namespace Yarn.Unity.ActionAnalyser
                     Parameters = GetParams(targetSymbol, documentationXML, logger),
                     SourceFileName = root.SyntaxTree.FilePath,
                     DeclarationType = DeclarationType.DirectRegistration,
+                    ReturnDescription = ReturnDescription,
                 };
             }
         }
@@ -647,6 +657,7 @@ namespace Yarn.Unity.ActionAnalyser
 
             // 3. This is not doc XML and just happens to be a comment above a command/function
             summary = documentationComments;
+            documentationXML = null;
             logger?.WriteLine("Unable to determine XML, returning the comment as is");
             return true;
         }
@@ -741,7 +752,16 @@ namespace Yarn.Unity.ActionAnalyser
                     continue;
                 }
 
-                TryGetDocumentation(methodSymbol, logger, out XElement? documentationXML, out string? summary);
+                string? ReturnDescription = null;
+                if (TryGetDocumentation(methodSymbol, logger, out XElement? documentationXML, out string? summary))
+                {
+                    var returnNode = documentationXML?.Element("returns");
+                    if (returnNode != null)
+                    {
+                        ReturnDescription = string.Join("", returnNode.DescendantNodes().OfType<XText>().Select(n => n.ToString())).Trim();
+                        logger.WriteLine($"\tFound a return: {ReturnDescription}");
+                    }
+                }
 
                 var containerName = container?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? "<unknown>";
 
@@ -761,6 +781,7 @@ namespace Yarn.Unity.ActionAnalyser
                     Description = summary,
                     SourceFileName = root.SyntaxTree.FilePath,
                     DeclarationType = DeclarationType.Attribute,
+                    ReturnDescription = ReturnDescription,
                 };
             }
         }
