@@ -896,12 +896,27 @@ namespace Yarn.Unity.ActionAnalyser
                     }
                 }
 
+                // ok here need to make some changes
+                // if p is variadic it will be array<T> and I need to get just the T
+                ITypeSymbol parameterType = param.Type;
+                if (param.IsParams)
+                {
+                    if (param.Type is IArrayTypeSymbol arrayTypeSymbol)
+                    {
+                        parameterType = arrayTypeSymbol.ElementType;
+                    }
+                    else
+                    {
+                        logger?.WriteLine($"\t{param.Name} is a variadic parameter but isn't an array");
+                    }
+                }
+
                 parameterDocumentation.TryGetValue(param.Name, out var paramDoc);
                 var p = new Parameter
                 {
                     Name = param.Name,
                     IsOptional = param.IsOptional,
-                    Type = param.Type,
+                    Type = parameterType,
                     Description = paramDoc,
                     IsParamsArray = param.IsParams,
                     Attributes = attributes.Count() == 0 ? null : attributes.ToArray(),

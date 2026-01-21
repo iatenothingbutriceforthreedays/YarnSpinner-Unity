@@ -288,8 +288,9 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
                     IEnumerable<string> functionJSON = actions.Where(a => a.Type == ActionType.Function).Select(a => a.ToJSON());
 
                     var ysls = "{" +
-                    $@"""Commands"":[{string.Join(",", commandJSON)}]," +
-                    $@"""Functions"":[{string.Join(",", functionJSON)}]" +
+                    @"""version"":2," +
+                    $@"""commands"":[{string.Join(",", commandJSON)}]," +
+                    $@"""functions"":[{string.Join(",", functionJSON)}]" +
                     "}";
 
                     output.WriteLine($"Done.");

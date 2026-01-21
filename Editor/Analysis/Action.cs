@@ -107,7 +107,7 @@ namespace Yarn.Unity.ActionAnalyser
 
     static class ITypeSymbolExtension
     {
-        public static string? GetYarnTypeString(this ITypeSymbol typeSymbol)
+        public static string GetYarnTypeString(this ITypeSymbol typeSymbol)
         {
             return typeSymbol.SpecialType switch
             {
@@ -124,7 +124,7 @@ namespace Yarn.Unity.ActionAnalyser
                 SpecialType.System_Single => "number",
                 SpecialType.System_Double => "number",
                 SpecialType.System_String => "string",
-                _ => null
+                _ => "any"
             };
         }
     }
@@ -140,7 +140,7 @@ namespace Yarn.Unity.ActionAnalyser
 
         public AttributeData[]? Attributes;
 
-        public readonly string? YarnTypeString => Type.GetYarnTypeString();
+        public readonly string YarnTypeString => Type.GetYarnTypeString(); // this should change to support the subtypes through the same logic we use below, for now it's fine
     }
 
     public class Action
@@ -227,21 +227,21 @@ namespace Yarn.Unity.ActionAnalyser
         public List<Parameter> Parameters = new List<Parameter>();
 
         public string? ReturnDescription;
-        public string? YarnReturnTypeString => this.MethodSymbol.ReturnType.GetYarnTypeString();
+        public string YarnReturnTypeString => this.MethodSymbol.ReturnType.GetYarnTypeString();
 
         public string ToJSON()
         {
             var result = new Dictionary<string, object?>();
 
-            result["YarnName"] = this.Name;
-            result["DefinitionName"] = this.MethodName;
-            result["FileName"] = this.SourceFileName;
+            result["yarnName"] = this.Name;
+            result["definitionName"] = this.MethodName;
+            result["fileName"] = this.SourceFileName;
             if (!string.IsNullOrEmpty(this.Description))
             {
-                result["Documentation"] = this.Description;
+                result["documentation"] = this.Description;
             }
-            result["Language"] = "csharp";
-            result["Async"] = this.AsyncType != AsyncType.Sync;
+            result["language"] = "csharp";
+            result["async"] = this.AsyncType != AsyncType.Sync;
 
             if (this.Declaration != null)
             {
@@ -257,27 +257,27 @@ namespace Yarn.Unity.ActionAnalyser
                     {"line", location.EndLinePosition.Line},
                     {"character", location.EndLinePosition.Character},
                 };
-                result["Location"] = new Dictionary<string, Dictionary<string, int>>()
+                result["location"] = new Dictionary<string, Dictionary<string, int>>()
                 {
                     {"start", startPosition},
                     {"end", endPosition},
                 };
             }
 
-            result["Parameters"] = new List<Dictionary<string, object?>>(this.Parameters.Select(p =>
+            result["parameters"] = new List<Dictionary<string, object?>>(this.Parameters.Select(p =>
             {
                 var paramObject = new Dictionary<string, object?>();
 
-                paramObject["Name"] = p.Name;
+                paramObject["name"] = p.Name;
                 if (!string.IsNullOrEmpty(p.Description))
                 {
-                    paramObject["Documentation"] = p.Description;
+                    paramObject["documentation"] = p.Description;
                 }
                 if (!string.IsNullOrEmpty(p.DefaultValueString))
                 {
-                    paramObject["DefaultValue"] = p.DefaultValueString;
+                    paramObject["defaultValue"] = p.DefaultValueString;
                 }
-                paramObject["IsParamsArray"] = p.IsParamsArray;
+                paramObject["isParamsArray"] = p.IsParamsArray;
 
                 // there are two special cases for parameters
                 // if it is a subclass of UnityEngine.Component or MonoBehaviour we additionally add the subtype
@@ -285,21 +285,20 @@ namespace Yarn.Unity.ActionAnalyser
                 // otherwise we just add the Yarn type of the parameter
                 if (p.Type.BaseType?.Name == "MonoBehaviour" || p.Type.BaseType?.Name == "Component")
                 {
-                    paramObject["Type"] = "instance";
-                    paramObject["SubType"] = p.Type.Name;
+                    paramObject["type"] = "instance";
+                    paramObject["subtype"] = p.Type.Name;
                 }
                 else
                 {
-                    // there is one special case of the regular types
-                    // if the parameter has the YarnNodeParameterAttribute on it then we want to say it's a node and not a string
+                    // there is one special case of the regular types which is if you are a string and attributed as a node parameter
                     var isANodeType = p.Attributes?.Count(a => a.AttributeClass?.Name == "YarnNodeParameterAttribute") > 0;
                     if (isANodeType && p.Type.SpecialType == SpecialType.System_String)
                     {
-                        paramObject["Type"] = "node";
+                        paramObject["type"] = "node";
                     }
                     else
                     {
-                        paramObject["Type"] = p.YarnTypeString;
+                        paramObject["type"] = p.YarnTypeString;
                     }
                 }
 
@@ -309,13 +308,13 @@ namespace Yarn.Unity.ActionAnalyser
             if (this.Type == ActionType.Function)
             {
                 var retvrn = new Dictionary<string, string>();
-                retvrn["Type"] = this.YarnReturnTypeString ?? "error";
+                retvrn["type"] = this.YarnReturnTypeString;
 
                 if (!string.IsNullOrWhiteSpace(this.ReturnDescription))
                 {
-                    retvrn["Description"] = this.ReturnDescription;
+                    retvrn["description"] = this.ReturnDescription;
                 }
-                result["Return"] = retvrn;
+                result["return"] = retvrn;
             }
 
             return Yarn.Unity.Editor.Json.Serialize(result);

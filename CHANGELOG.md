@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `YarnProjectImporter` now updates asset addresses and generates the C# variable storage class after the project import completes, rather than during the import.
 - Each assembly now gets it's own YSLS file when generating them.
   - renamed the test asmdef files from `YarnSpinnerTests.x` to `YarnSpinner.Unity.Tests.X` so that they are matched by the existing filters.
+- Generated YSLS file now matches the newer schema, see the YS core repo for details of this
 
 ### Removed
 
