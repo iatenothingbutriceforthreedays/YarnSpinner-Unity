@@ -238,38 +238,41 @@ namespace Yarn.Unity.Editor
             var allFiles = Directory.EnumerateFiles(assetsFolderPath, "*", SearchOption.AllDirectories)
                 .Where(path => path.EndsWith(".meta") == false)
                 .Where(path => assetType.IsAssignableFrom(AssetDatabase.GetMainAssetTypeAtPath(path)));
-
+            
             // Match files with those whose filenames contain a line ID
-            var matchedFilesAndPaths = lineIDs.GroupJoin(
-                // the elements we're matching lineIDs to
-                allFiles,
-                // the key for lineIDs (being strings, it's just the line ID
-                // itself)
-                lineID => lineID,
-                // the key for assets (the filename without the path)
-                assetPath => Path.GetFileName(assetPath),
-                // the way we produce the result (a key-value pair)
-                (lineID, assetPaths) =>
+            // If a direct file match is found prefer that
+            Dictionary<string, string> assets = new();
+            foreach (var lineID in lineIDs)
+            {
+                var lineIDWithoutPrefix = lineID.Replace("line:", "").ToLowerInvariant();
+                var candidates = new List<string>();
+                foreach (var asset in allFiles)
                 {
-                    if (assetPaths.Count() > 1)
-                    {
-                        Debug.LogWarning($"Line {lineID} has {assetPaths.Count()} possible assets.\n{string.Join(", ", assetPaths)}");
-                    }
-                    return new { lineID, assetPaths };
-                },
-                // the way we test to see if two elements should be joined (does
-                // the filename contain the line ID?)
-                Compare.By<string>((fileName, lineID) =>
-                {
-                    var lineIDWithoutPrefix = lineID.Replace("line:", "");
-                    return Path.GetFileNameWithoutExtension(fileName).Contains(lineIDWithoutPrefix);
-                })
-                )
-                // Discard any pair where no asset was found
-                .Where(pair => pair.assetPaths.Count() > 0)
-                .ToDictionary(entry => entry.lineID, entry => entry.assetPaths.FirstOrDefault());
+                    var file = Path.GetFileNameWithoutExtension(asset).ToLowerInvariant();
 
-            return matchedFilesAndPaths;
+                    if (file == lineIDWithoutPrefix)
+                    {
+                        assets[lineIDWithoutPrefix] = asset;
+                        break;
+                    }
+
+                    if (file.Contains(lineIDWithoutPrefix))
+                    {
+                        candidates.Add(asset);
+                    }
+                }
+
+                var count = candidates.Count();
+                if (count > 0)
+                {
+                    assets[lineID] = candidates.FirstOrDefault();
+                    if (count > 1)
+                    {
+                        Debug.LogWarning($"Discovered {count} candidates for {lineID}. Selecting one.");
+                    }
+                }
+            }
+            return assets;
         }
 
         /// <summary>

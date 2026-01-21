@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Each assembly now gets it's own YSLS file when generating them.
   - renamed the test asmdef files from `YarnSpinnerTests.x` to `YarnSpinner.Unity.Tests.X` so that they are matched by the existing filters.
 - Generated YSLS file now matches the newer schema, see the YS core repo for details of this
+- When matching assets to line IDs the importer now prefers exact matches to the line ID
 
 ### Removed
 
