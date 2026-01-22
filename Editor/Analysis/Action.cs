@@ -290,11 +290,30 @@ namespace Yarn.Unity.ActionAnalyser
                 }
                 else
                 {
-                    // there is one special case of the regular types which is if you are a string and attributed as a node parameter
+                    // there are two special case of the regular types:
+                    // if you are a string and attributed as a node parameter you get declared as being a node type
+                    // if you have an enum attribute it gets declared as an enum and it has the subtype as defined in the enum attribute
+
                     var isANodeType = p.Attributes?.Count(a => a.AttributeClass?.Name == "YarnNodeParameterAttribute") > 0;
+                    var isAnEnum = p.Attributes?.Count(a => a.AttributeClass?.Name == "YarnEnumParameterAttribute") > 0;
+
                     if (isANodeType && p.Type.SpecialType == SpecialType.System_String)
                     {
                         paramObject["type"] = "node";
+                    }
+                    else if (isAnEnum)
+                    {
+                        paramObject["type"] = "enum";
+
+                        var attribute = p.Attributes?.Where(a => a.AttributeClass?.Name == "YarnEnumParameterAttribute").First();
+                        if (attribute != null && attribute.ConstructorArguments.Count() > 0)
+                        {
+                            var enumType = attribute.ConstructorArguments[0];
+                            if (enumType.Type?.SpecialType == SpecialType.System_String)
+                            {
+                                paramObject["subtype"] = enumType.Value as string ?? p.YarnTypeString;
+                            }
+                        }
                     }
                     else
                     {
@@ -312,7 +331,7 @@ namespace Yarn.Unity.ActionAnalyser
 
                 if (!string.IsNullOrWhiteSpace(this.ReturnDescription))
                 {
-                    retvrn["description"] = this.ReturnDescription;
+                    retvrn["description"] = this.ReturnDescription!;
                 }
                 result["return"] = retvrn;
             }

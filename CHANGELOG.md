@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Generated YSLS file now includes subtype information for instance commands
   - This means a command like `<<move gary left>>` now knows that the `"gary"` is the name of a game object and the specific game object subclass
   - Only works at a single level of monobehaviour depth, subclasses of a monobehaviour subclass will not be recognised
+- `YarnNodeParameterAttribute` can now be added to string parameters in function and command methods
+  - Intended to allow you to hint to the VSCode extension that when writing this parameter in commands and functions to limit suggestions to nodes
+- `YarnEnumParameterAttribute` can now be added to parameters in functions and command methods
+  - has one field which is the name the enum as declared in your Yarn
+  - Intended to allow you to hint to the VSCode extension to offer enum based suggestions
+  - this is temporary until forward declaration of Yarn enums into C# works
 
 ### Changed
 
