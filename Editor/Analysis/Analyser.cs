@@ -58,7 +58,7 @@ namespace Yarn.Unity.ActionAnalyser
         public IEnumerable<string> SourceFiles => GetSourceFiles(SourcePath);
         public string SourcePath { get; set; }
 
-        public IEnumerable<Action> GetActions(IEnumerable<string>? assemblyPaths = null, bool onlyValid = false)
+        public IEnumerable<Action> GetActions(IEnumerable<string>? assemblyPaths = null, ILogger? logger = null)
         {
             var trees = SourceFiles
                 .Select(path => CSharpSyntaxTree.ParseText(File.ReadAllText(path), path: path))
@@ -111,7 +111,7 @@ namespace Yarn.Unity.ActionAnalyser
             {
                 foreach (var tree in trees)
                 {
-                    output.AddRange(GetActions(compilation, tree));
+                    output.AddRange(GetActions(compilation, tree, logger));
                 }
             }
             catch (Exception e)
@@ -119,9 +119,9 @@ namespace Yarn.Unity.ActionAnalyser
                 throw new AnalyserException(e.Message, e, diagnostics);
             }
 
-            if (onlyValid)
+            foreach (var action in output)
             {
-                output = output.Where(a => a.Validate(compilation).Count == 0).ToList();
+                action.Validate(compilation, logger);
             }
 
             return output;

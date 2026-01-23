@@ -220,7 +220,7 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
                     continue;
                 }
 
-                var diagnostics = action.Validate(compilation);
+                var diagnostics = action.Validate(compilation, output);
                 foreach (var diagnostic in diagnostics)
                 {
                     context.ReportDiagnostic(diagnostic);

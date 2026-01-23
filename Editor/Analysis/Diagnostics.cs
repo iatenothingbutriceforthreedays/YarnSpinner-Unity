@@ -64,12 +64,57 @@ public static class Diagnostics
                         helpLinkUri: "https://docs.yarnspinner.dev/using-yarnspinner-with-unity/creating-commands-functions");
 
     public static readonly DiagnosticDescriptor YS1007ActionsMustBeInPublicTypes = new DiagnosticDescriptor(
-                        "YS1006",
+                        "YS1007",
                         title: $"Yarn action methods must be in a public type",
                         messageFormat: "Yarn actions must be in a publicly accessible type. {0}'s containing type, {1}, is {2}.",
                         category: "Yarn Spinner",
                         defaultSeverity: DiagnosticSeverity.Warning,
                         isEnabledByDefault: true,
                         helpLinkUri: "https://docs.yarnspinner.dev/using-yarnspinner-with-unity/creating-commands-functions");
+    
+    public static readonly DiagnosticDescriptor YS1008ActionsParamsArraysMustBeOfYarnTypes = new DiagnosticDescriptor(
+                        "YS1008",
+                        title: "Params arrays must be of a Yarn compatible type",
+                        messageFormat: "Params arrays must be of a Yarn compatible type, but {0} is of type \"{1}\"",
+                        category: "Yarn Spinner",
+                        defaultSeverity: DiagnosticSeverity.Warning,
+                        isEnabledByDefault: true,
+                        helpLinkUri: "https://docs.yarnspinner.dev/yarn-spinner-for-unity/creating-commands-functions");
+    
+    public static readonly DiagnosticDescriptor YS1009ActionsEnumAttributedParameterIsOfIncompatibleType = new DiagnosticDescriptor(
+                        "YS1009",
+                        title: "Yarn Enum attributed parameters must be of a Yarn compatible type",
+                        messageFormat: "Yarn Enum attributed parameters must be of a Yarn compatible type, but {0} is of type \"{1}\"",
+                        category: "Yarn Spinner",
+                        defaultSeverity: DiagnosticSeverity.Warning,
+                        isEnabledByDefault: true,
+                        helpLinkUri: "https://docs.yarnspinner.dev/yarn-spinner-for-unity/creating-commands-functions");
+    
+    public static readonly DiagnosticDescriptor YS1010ActionsNodeAttributedParameterIsOfIncompatibleType = new DiagnosticDescriptor(
+                        "YS1010",
+                        title: "Yarn Node attributed parameters must be a string",
+                        messageFormat: "Yarn Node attributed parameters must be a string, but {0} is of type \"{1}\"",
+                        category: "Yarn Spinner",
+                        defaultSeverity: DiagnosticSeverity.Warning,
+                        isEnabledByDefault: true,
+                        helpLinkUri: "https://docs.yarnspinner.dev/yarn-spinner-for-unity/creating-commands-functions");
+    
+    public static readonly DiagnosticDescriptor YS1011ActionsParameterIsAnIncompatibleType = new DiagnosticDescriptor(
+                        "YS1011",
+                        title: "Yarn action parameters must be of a Yarn compatible type",
+                        messageFormat: "Yarn action parameters must be of a Yarn compatible type, but {0} is of type \"{1}\"",
+                        category: "Yarn Spinner",
+                        defaultSeverity: DiagnosticSeverity.Warning,
+                        isEnabledByDefault: true,
+                        helpLinkUri: "https://docs.yarnspinner.dev/yarn-spinner-for-unity/creating-commands-functions");
+    
+    public static readonly DiagnosticDescriptor YS1012ActionIsALambda = new DiagnosticDescriptor(
+                        "YS1012",
+                        title: "Yarn actions can be lambdas but this generally isn't recommended.",
+                        messageFormat: "Yarn actions can be lambdas but this generally isn't recommended.",
+                        category: "Yarn Spinner",
+                        defaultSeverity: DiagnosticSeverity.Info,
+                        isEnabledByDefault: true,
+                        helpLinkUri: "https://docs.yarnspinner.dev/yarn-spinner-for-unity/creating-commands-functions");
 
 }

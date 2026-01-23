@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - has one field which is the name the enum as declared in your Yarn
   - Intended to allow you to hint to the VSCode extension to offer enum based suggestions
   - this is temporary until forward declaration of Yarn enums into C# works
+- Incorrectly defined parameters for commands and functions will now generate diagnostics on the C# implementation, warnings exist for:
+  - invalid types
+  - incorrectly attributed parameters
 
 ### Changed
 
