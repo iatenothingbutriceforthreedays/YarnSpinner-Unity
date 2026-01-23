@@ -229,6 +229,8 @@ namespace Yarn.Unity.ActionAnalyser
         public string? ReturnDescription;
         public string YarnReturnTypeString => this.MethodSymbol.ReturnType.GetYarnTypeString();
 
+        public bool ContainsErrors = false;
+
         public string ToJSON()
         {
             var result = new Dictionary<string, object?>();
@@ -242,6 +244,8 @@ namespace Yarn.Unity.ActionAnalyser
             }
             result["language"] = "csharp";
             result["async"] = this.AsyncType != AsyncType.Sync;
+
+            result["containsErrors"] = this.ContainsErrors;
 
             if (this.Declaration != null)
             {
@@ -487,6 +491,8 @@ namespace Yarn.Unity.ActionAnalyser
                 yield return Diagnostic.Create(Diagnostics.YS1006YarnFunctionsMustBeStatic, identifierLocation);
             }
 
+            logger?.Inc();
+            logger?.WriteLine($"Validating {identifier} as a function");
             var paramDiags = ValidateParameters(compilation, logger);
             foreach (var p in paramDiags)
             {
@@ -496,6 +502,7 @@ namespace Yarn.Unity.ActionAnalyser
             // Functions must return a number, string, or bool
             var returnTypeSymbol = this.MethodSymbol.ReturnType;
 
+            logger?.Dec();
             switch (returnTypeSymbol.SpecialType)
             {
                 case SpecialType.System_Boolean:
@@ -522,33 +529,32 @@ namespace Yarn.Unity.ActionAnalyser
         // validates the parameters are correct
         private List<Diagnostic> ValidateParameters(Compilation compilation, ILogger? logger)
         {
+            logger?.Inc();
             List<Diagnostic> diagnostics = new List<Diagnostic>();
             ParameterListSyntax? parameterList = null;
-            Location? actionLocation = null;
             string? identifier = null;
             
             if (this.MethodDeclarationSyntax is MethodDeclarationSyntax methodDeclaration)
             {
                 identifier = methodDeclaration.Identifier.ToString();
-                logger?.WriteLine($"Validating {identifier} as a method");
+                logger?.WriteLine($"identified {identifier} as a method");
                 parameterList = methodDeclaration.ParameterList;
-                actionLocation = methodDeclaration.GetLocation();
             }
             else if (this.MethodDeclarationSyntax is LocalFunctionStatementSyntax localFunctionStatement)
             {
                 identifier = localFunctionStatement.Identifier.ToString();
-                logger?.WriteLine($"Validating {identifier} as a local function");
+                logger?.WriteLine($"identified {identifier} as a local function");
                 parameterList = localFunctionStatement.ParameterList;
-                actionLocation = localFunctionStatement.GetLocation();
             }
             else if(this.MethodDeclarationSyntax is LambdaExpressionSyntax lambdaExpression)
             {
-                logger?.WriteLine("The action is a lambda.");
-                actionLocation = lambdaExpression.GetLocation();
+                logger?.WriteLine("identifed the action as a lambda.");
+                var actionLocation = lambdaExpression.GetLocation();
 
                 if (lambdaExpression is SimpleLambdaExpressionSyntax)
                 {
                     logger?.WriteLine("The action is a simple lambda, validations do not apply here, skipping this action.");
+                    logger?.Dec();
                     diagnostics.Add(Diagnostic.Create(Diagnostics.YS1012ActionIsALambda, actionLocation));
                     return diagnostics;
                 }
@@ -567,15 +573,18 @@ namespace Yarn.Unity.ActionAnalyser
             if (parameterList == null || parameterList.Parameters.Count() == 0)
             {
                 logger?.WriteLine($"{identifier} has no parameters, ignoring");
+                logger?.Dec();
                 return diagnostics;
             }
 
             logger?.WriteLine($"Will be checking {parameterList.Parameters.Count()} parameters");
             foreach (var parameter in parameterList.Parameters)
             {
+                logger?.Inc();
                 if (parameter.Type == null)
                 {
                     logger?.WriteLine($"{parameter.ToFullString()} has no type, ignoring validation?");
+                    logger?.Dec();
                     continue;
                 }
 
@@ -588,6 +597,7 @@ namespace Yarn.Unity.ActionAnalyser
                 if (typeInfo == null)
                 {
                     logger?.WriteLine($"Unable to determine typeinfo of {parameterName} ignoring validation?");
+                    logger?.Dec();
                     continue;
                 }
 
@@ -595,6 +605,7 @@ namespace Yarn.Unity.ActionAnalyser
                 if (symbol == null)
                 {
                     logger?.WriteLine($"Unable to determine the declared symbol for {parameterName}, skipping validation");
+                    logger?.Dec();
                     continue;
                 }
 
@@ -603,7 +614,6 @@ namespace Yarn.Unity.ActionAnalyser
                     if (symbol.Type is IArrayTypeSymbol arrayTypeSymbol)
                     {
                         var subtype = arrayTypeSymbol.ElementType;
-                        logger?.WriteLine($"{parameterName} is a params array made up of {subtype}:_{subtype.Name}_:-{subtype.GetYarnTypeString()}-");
                         if (subtype.GetYarnTypeString() == "any")
                         {
                             logger?.WriteLine($"{parameterName} is a parameter array of non Yarn compatible types!");
@@ -620,7 +630,6 @@ namespace Yarn.Unity.ActionAnalyser
                         diagnostics.Add(Diagnostic.Create(Diagnostics.YS1011ActionsParameterIsAnIncompatibleType, parameter.GetLocation(), parameterName, typeInfo.Name));
                     }
                 }
-
 
                 foreach (var attribute in symbol.GetAttributes())
                 {
@@ -642,15 +651,19 @@ namespace Yarn.Unity.ActionAnalyser
                         }
                     }
                 }
+                logger?.Dec();
             }
 
+            logger?.Dec();
             return diagnostics;
         }
 
         private IEnumerable<Diagnostic> ValidateCommand(Compilation compilation, ILogger? logger)
         {
+            logger?.Inc();
             if (MethodSymbol == null)
             {
+                logger?.Dec();
                 throw new NullReferenceException("Method symbol is null");
             }
 
@@ -705,8 +718,11 @@ namespace Yarn.Unity.ActionAnalyser
             }
             else
             {
+                logger?.Dec();
                 throw new InvalidOperationException($"Expected decl for {this.Name} ({this.SourceFileName}) was of unexpected type {this.MethodDeclarationSyntax?.GetType().Name ?? "null"}");
             }
+
+            logger?.WriteLine($"Validating {identifier} as a command");
 
             var paramDiags = ValidateParameters(compilation, logger);
             foreach (var p in paramDiags)
@@ -719,6 +735,7 @@ namespace Yarn.Unity.ActionAnalyser
             var typeIsKnownInvalid = knownInvalidCommandReturnTypes.Contains(returnTypeSymbol);
 
             var returnTypeIsValid = typeIsKnownValid && !typeIsKnownInvalid;
+            logger?.Dec();
 
             if (returnTypeIsValid == false)
             {

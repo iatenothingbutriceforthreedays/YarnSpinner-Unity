@@ -121,7 +121,10 @@ namespace Yarn.Unity.ActionAnalyser
 
             foreach (var action in output)
             {
-                action.Validate(compilation, logger);
+                if (action.Validate(compilation, logger).Any(d => d.Severity == DiagnosticSeverity.Warning || d.Severity == DiagnosticSeverity.Error))
+                {
+                    action.ContainsErrors = true;
+                }
             }
 
             return output;

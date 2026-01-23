@@ -210,7 +210,6 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
                 return;
             }
 
-            HashSet<string> removals = new HashSet<string>();
             // validating and logging all the actions
             foreach (var action in actions)
             {
@@ -224,7 +223,11 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
                 foreach (var diagnostic in diagnostics)
                 {
                     context.ReportDiagnostic(diagnostic);
-                    output.WriteLine($"Skipping '{action.Name}' ({action.MethodName}): {diagnostic}");
+                    if (diagnostic.Severity == DiagnosticSeverity.Warning || diagnostic.Severity == DiagnosticSeverity.Error)
+                    {
+                        output.WriteLine($"Flagging '{action.Name}' ({action.MethodName}): {diagnostic}");
+                        action.ContainsErrors = true;
+                    }
                 }
 
                 if (diagnostics.Count > 0)
@@ -250,16 +253,13 @@ public class ActionRegistrationSourceGenerator : ISourceGenerator
                         action.Declaration?.GetLocation(),
                         action.Name
                     ));
-                    output.WriteLine($"Action {action.MethodIdentifierName} will be skipped due to it's name {action.Name}");
-                    removals.Add(action.Name);
+                    action.ContainsErrors = true;
+                    output.WriteLine($"Action {action.MethodIdentifierName} will be flagged due to it's name {action.Name}");
                     continue;
                 }
 
                 output.WriteLine($"Action {action.Name}: {action.SourceFileName}:{action.Declaration?.GetLocation()?.GetLineSpan().StartLinePosition.Line} ({action.Type})");
             }
-
-            // removing any actions that failed validation
-            actions = actions.Where(x => !removals.Contains(x.Name)).ToList();
 
             output.Write($"Generating source code...");
 
