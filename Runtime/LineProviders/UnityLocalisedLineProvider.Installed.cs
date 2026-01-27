@@ -44,7 +44,7 @@ namespace Yarn.Unity.UnityLocalization
             {
                 foreach (var metadataEntry in tags)
                 {
-                    if (metadataEntry.StartsWith("shadow:") != false)
+                    if (metadataEntry.StartsWith("shadow:"))
                     {
                         // This is a shadow line. Return the line ID that it's
                         // shadowing.
