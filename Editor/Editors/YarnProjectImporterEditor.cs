@@ -260,6 +260,9 @@ namespace Yarn.Unity.Editor
 
             var importData = yarnProjectImporter.ImportData;
 
+            sourceEntryFields.Clear();
+            localizationEntryFields.Clear();
+
             var ui = new VisualElement();
             uiRoot = ui;
 
