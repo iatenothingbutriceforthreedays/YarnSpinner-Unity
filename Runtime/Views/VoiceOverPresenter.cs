@@ -110,19 +110,19 @@ namespace Yarn.Unity
                 voiceOverClip = result;
             }
 
-            DialogueRunner? dialogueRunner = dialogueLine.Source as DialogueRunner;
+            IRequestLineCancellation? requestLineCancellationHandler = dialogueLine.Source as IRequestLineCancellation;
 
             if (voiceOverClip == null)
             {
                 Debug.LogError($"Playing voice over failed because the localised line {dialogueLine.TextID} " +
                     $"either didn't have an asset, or its asset was not an {nameof(AudioClip)}.", gameObject);
 
-                if (this.endLineWhenVoiceoverComplete && dialogueRunner != null)
+                if (this.endLineWhenVoiceoverComplete && requestLineCancellationHandler != null)
                 {
                     // If we didn't get a line, but we were configured to
                     // advance the line on end, then we should act as though
                     // we've reached the end of the line now and advance.
-                    dialogueRunner.RequestNextLine();
+                    requestLineCancellationHandler.RequestLineCancellation(dialogueLine);
                 }
                 return;
             }
@@ -142,6 +142,12 @@ namespace Yarn.Unity
                     lineCancellationToken.NextContentToken).SuppressCancellationThrow();
             }
 
+            if (!DialogueRunner.IsInPlaymode)
+            {
+                // We left play mode while waiting before starting playback
+                return;
+            }
+
             // Start playing the audio.
             audioSource.PlayOneShot(voiceOverClip);
 
@@ -151,6 +157,7 @@ namespace Yarn.Unity
 
             if (!DialogueRunner.IsInPlaymode)
             {
+                // We left play mode before the audio started playing
                 return;
             }
 
@@ -160,6 +167,7 @@ namespace Yarn.Unity
 
             if (!DialogueRunner.IsInPlaymode)
             {
+                // We left play mode while the audio was playing
                 return;
             }
 
@@ -203,15 +211,21 @@ namespace Yarn.Unity
                 ).SuppressCancellationThrow();
             }
 
+            if (!DialogueRunner.IsInPlaymode)
+            {
+                // We left play mode while waiting after the line completed
+                return;
+            }
+
             if (endLineWhenVoiceoverComplete)
             {
-                if (dialogueRunner == null)
+                if (requestLineCancellationHandler == null)
                 {
-                    Debug.LogError($"Can't end line due to voice over being complete: {nameof(dialogueRunner)} is null", this);
+                    Debug.LogError($"Can't end line due to voice over being complete: {nameof(requestLineCancellationHandler)} is null", this);
                 }
                 else
                 {
-                    dialogueRunner.RequestNextLine();
+                    requestLineCancellationHandler.RequestLineCancellation(dialogueLine);
                 }
             }
         }

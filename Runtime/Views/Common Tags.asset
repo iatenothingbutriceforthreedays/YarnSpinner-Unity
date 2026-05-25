@@ -46,4 +46,4 @@ MonoBehaviour:
     Start: 
     End: <br>
     MarkerOffset: 0
-    TotalVisibleCharacterCount: 0
+    TotalVisibleCharacterCount: 1

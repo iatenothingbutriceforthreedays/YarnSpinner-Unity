@@ -262,6 +262,9 @@ namespace Yarn.Unity.Editor
         }
 #endif
 
+        public bool useCustomLineTagger;
+        public string? lineTaggerClass;
+
         /// <summary>
         /// Gets a <see cref="Project"/> loaded from this importer's asset file,
         /// or <see langword="null"/> if an error is encountered.
@@ -500,7 +503,7 @@ namespace Yarn.Unity.Editor
                     var errorGroups = errors.GroupBy(e => e.FileName);
                     foreach (var errorGroup in errorGroups)
                     {
-                        if (errorGroup.Key == null)
+                        if (string.IsNullOrWhiteSpace(errorGroup.Key))
                         {
                             // ok so we have no file for some reason
                             // so these are errors currently not tied to a file
@@ -573,6 +576,68 @@ namespace Yarn.Unity.Editor
                 {
                     ctx.LogImportError("Internal error: Failed to compile: resulting program was null, but compiler did not report errors.");
                     return;
+                }
+
+                // logging the warnings also
+                var warnings = compilationResult.Diagnostics.Where(d => d.Severity == Diagnostic.DiagnosticSeverity.Warning);
+                if (warnings.Count() > 0)
+                {
+                    // TODO: work out if it's worth adding in support for warning/info level diags here
+                    // for errors we store them as part of the import data and I am wondering if that is worth it for warnings
+                    var warningGroups = warnings.GroupBy(w => w.FileName);
+                    foreach (var warningGroup in warningGroups)
+                    {
+                        if (string.IsNullOrWhiteSpace(warningGroup.Key))
+                        {
+                            // ok so we have no file for some reason
+                            // so these are warnings currently not tied to a file
+                            // so we instead need to just log the warnings and move on
+                            foreach (var warning in warningGroup)
+                            {
+                                ctx.LogImportWarning(warning.Message);
+                            }
+                            continue;
+                        }
+
+                        // the compiler currently returns (unknown) for situations where an error is defined in a file that the compiler can't access
+                        // this is not ideal and something to fix, but for now we will handle it by reporting the issue in a different way
+                        if (warningGroup.Key == "(unknown)")
+                        {
+                            foreach (var warning in warningGroup)
+                            {
+                                ctx.LogImportWarning(warning.Message);
+                            }
+                            continue;
+                        }
+
+                        try
+                        {
+                            var relativePath = GetRelativePath(warningGroup.Key);
+
+                            var asset = AssetDatabase.LoadAssetAtPath<Object>(relativePath);
+
+                            foreach (var warning in warningGroup)
+                            {
+                                var relativeWarningFileName = GetRelativePath(warning.FileName);
+                                
+                                // some warnings don't seem to have line numbers?
+                                if (warning.Range.Start.Line == -1)
+                                {
+                                    ctx.LogImportWarning($"<a href=\"{relativeWarningFileName}\">{relativeWarningFileName}</a>: {warning.Message}", asset);
+                                }
+                                else
+                                {
+                                    ctx.LogImportWarning($"<a href=\"{relativeWarningFileName}\" line=\"{warning.Range.Start.Line + 1}\">{relativeWarningFileName}</a> {warning.Range.Start.Line + 1}: {warning.Message}", asset);
+                                }
+                            }
+
+                            var fileWithErrors = AssetDatabase.LoadAssetAtPath<TextAsset>(relativePath);
+                        }
+                        catch (System.Exception ex)
+                        {
+                            ctx.LogImportError($"Import failed with an unhandled exception: {ex.Message}");
+                        }
+                    }
                 }
 
                 importData.containsImplicitLineIDs = compilationResult.ContainsImplicitStringTags;
@@ -1308,6 +1373,44 @@ namespace Yarn.Unity.Editor
                         nodeName = stringInfo.nodeName,
                         tags = tags,
                     });
+                }
+            }
+
+            if (YarnSpinnerProjectSettings.GetOrCreateSettings().sortLocalisationValuesInsideStringTable)
+            {
+                // sorting the table based on file and line number
+                Dictionary<string, string> sortKeys = new();
+                foreach (var pair in stringTable)
+                {
+                    sortKeys[pair.Key] = $"{pair.Value.fileName.ToLower()}-{string.Format("{0:D6}", pair.Value.lineNumber)}";
+                }
+
+                HashSet<string> invalidKeys = new();
+                unityStringTable.SharedData.Entries.Sort((a,b) =>
+                {
+                    // if we encounter a key that doesn't match a value we got from the string table we want to log this and push it to one end
+                    if (sortKeys.TryGetValue(unityStringTable.GetEntry(a.Id).Key, out var aKey))
+                    {
+                        if (sortKeys.TryGetValue(unityStringTable.GetEntry(b.Id).Key, out var bKey))
+                        {
+                            return aKey.CompareTo(bKey);
+                        }
+                        else
+                        {
+                            invalidKeys.Add(unityStringTable.GetEntry(b.Id).Key);
+                            return 1;
+                        }
+                    }
+                    else
+                    {
+                        invalidKeys.Add(unityStringTable.GetEntry(a.Id).Key);
+                        return -1;
+                    }
+                });
+                // now that the table is sorted we want to log any invalid entries we might have found
+                foreach (var key in invalidKeys)
+                {
+                    Debug.LogWarning($"Encountered an ID in the Yarn string table \"{key}\" during import that didn't come from the Yarn Project.");
                 }
             }
 

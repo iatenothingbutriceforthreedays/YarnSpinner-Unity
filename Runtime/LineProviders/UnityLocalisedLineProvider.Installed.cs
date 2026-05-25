@@ -22,6 +22,7 @@ namespace Yarn.Unity.UnityLocalization
     /// <summary>
     /// Contains Yarn Spinner related metadata for Unity string table entries.
     /// </summary>
+    [System.Serializable]
     public class LineMetadata : IMetadata
     {
         /// <summary>
@@ -44,7 +45,7 @@ namespace Yarn.Unity.UnityLocalization
             {
                 foreach (var metadataEntry in tags)
                 {
-                    if (metadataEntry.StartsWith("shadow:") != false)
+                    if (metadataEntry.StartsWith("shadow:"))
                     {
                         // This is a shadow line. Return the line ID that it's
                         // shadowing.
