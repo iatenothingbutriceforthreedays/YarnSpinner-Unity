@@ -611,6 +611,17 @@ namespace Yarn.Unity.Editor
                     });
                 }
 
+                // DV: Remove any entries that are in Unity table but not in Yarn table 
+                // (This seems to not work for some reason)
+                // {
+                var entriesToRemove = table.Values.Where(e => !compilationResult.StringTable.ContainsKey(e.Key)).ToList();
+                foreach (var entry in entriesToRemove)
+                {
+                    Debug.Log($"Removing entry {entry.Key} from table {table.LocaleIdentifier.CultureInfo}");
+                    table.RemoveEntry(entry.Key);
+                }
+                // }
+
                 // We've made changes to the table, so flag it and its shared
                 // data as dirty.
                 EditorUtility.SetDirty(table);

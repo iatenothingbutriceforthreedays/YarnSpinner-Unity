@@ -6,6 +6,8 @@ using System;
 using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEditor;
+
 
 #if USE_TMP
 using TMPro;
@@ -152,7 +154,7 @@ namespace Yarn.Unity
         /// <param name="onCharacterTyped">An <see cref="Action"/> that should be called for each character that was revealed.</param>
         /// <param name="stopToken">A <see cref="CoroutineInterruptToken"/> that
         /// can be used to interrupt the coroutine.</param>
-        public static IEnumerator Typewriter(TextMeshProUGUI text, float lettersPerSecond, Action onCharacterTyped, CoroutineInterruptToken stopToken = null)
+        public static IEnumerator Typewriter(TextMeshProUGUI text, Func<float> lettersPerSecond, Action onCharacterTyped, CoroutineInterruptToken stopToken = null)
         {
             yield return PausableTypewriter(
                 text,
@@ -204,7 +206,17 @@ namespace Yarn.Unity
         /// <param name="onPauseEnded">An <see cref="Action"/> that will be called when the typewriter effect is restarted.</param>
         /// <param name="pausePositions">A stack of character position and pause duration tuples used to pause the effect. Generally created by <see cref="LineView.GetPauseDurationsInsideLine"/></param>
         /// <param name="stopToken">A <see cref="CoroutineInterruptToken"/> that can be used to interrupt the coroutine.</param>
-        public static IEnumerator PausableTypewriter(TextMeshProUGUI text, float lettersPerSecond, Action onCharacterTyped, Action onPauseStarted, Action onPauseEnded, Stack<(int position, float duration)> pausePositions, CoroutineInterruptToken stopToken = null)
+        public static IEnumerator PausableTypewriter(
+            TextMeshProUGUI text,
+            Func<float> lettersPerSecond,
+            Action onCharacterTyped,
+            Action onPauseStarted,
+            Action onPauseEnded,
+            Stack<(int position, float duration)> pausePositions,
+            CoroutineInterruptToken stopToken = null,
+            Func<float> autoPauseOnComma = null,
+            Func<float> autoPauseOnSentence = null
+        )
         {
             stopToken?.Start();
 
@@ -220,7 +232,7 @@ namespace Yarn.Unity
             var characterCount = text.textInfo.characterCount;
 
             // Early out if letter speed is zero, text length is zero
-            if (lettersPerSecond <= 0 || characterCount == 0)
+            if (lettersPerSecond() <= 0 || characterCount == 0)
             {
                 // Show everything and return
                 text.maxVisibleCharacters = characterCount;
@@ -229,7 +241,6 @@ namespace Yarn.Unity
             }
 
             // Convert 'letters per second' into its inverse
-            float secondsPerLetter = 1.0f / lettersPerSecond;
 
             // If lettersPerSecond is larger than the average framerate, we
             // need to show more than one letter per frame, so simply
@@ -249,10 +260,14 @@ namespace Yarn.Unity
                     yield break;
                 }
 
+                float secondsPerLetter = 1.0f / lettersPerSecond();
+
                 // We need to show as many letters as we have accumulated
                 // time for.
                 while (accumulator >= secondsPerLetter)
                 {
+                    float pauseDuration = 0f;
+
                     // ok so the change needs to be that if at any point we hit the pause position
                     // we instead stop worrying about letters
                     // and instead we do a normal wait for the necessary duration
@@ -261,13 +276,27 @@ namespace Yarn.Unity
                         if (text.maxVisibleCharacters == pausePositions.Peek().Item1)
                         {
                             var pause = pausePositions.Pop();
-                            onPauseStarted?.Invoke();
-                            yield return Effects.InterruptableWait(pause.Item2, stopToken);
-                            onPauseEnded?.Invoke();
-
-                            // need to reset the accumulator
-                            accumulator = Time.deltaTime;
+                            pauseDuration += pause.Item2;
                         }
+                    }
+
+                    // Also pause on punctuation
+                    if (0 <= text.maxVisibleCharacters - 1 && text.maxVisibleCharacters - 1 < text.text.Length) {
+                        var lastChar = text.text[text.maxVisibleCharacters - 1];
+                        if (lastChar == ',' && autoPauseOnComma != null) {
+                            pauseDuration += autoPauseOnComma();
+                        } else if ((lastChar == '.' || lastChar == '!' || lastChar == '?') && autoPauseOnSentence != null) {
+                            pauseDuration += autoPauseOnSentence();
+                        }
+                    }
+
+                    if (pauseDuration > 0) {
+                        onPauseStarted?.Invoke();
+                        yield return InterruptableWait(pauseDuration, stopToken);
+                        onPauseEnded?.Invoke();
+
+                        // Reset accumulator for some reason
+                        accumulator = Time.deltaTime;
                     }
 
                     text.maxVisibleCharacters += 1;

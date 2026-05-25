@@ -455,6 +455,12 @@ namespace Yarn.Unity.Editor
 #else
                 isUnityLocalisationAvailable = false;
 #endif
+            
+                // DV: automatically add line tags
+                if (isUnityLocalisationAvailable && yarnProjectImporter.HasErrors == false && yarnProjectImporter.CanGenerateStringsTable == false) {
+                    Debug.Log("YarnProjectImporterEditor: Auto-adding line tags to scripts");
+                    YarnProjectUtility.AddLineTagsToFilesInYarnProject(yarnProjectImporter);
+                }
 
                 cantGenerateUnityStringTableMessage.style.display = (isUnityLocalisationAvailable && yarnProjectImporter.HasErrors == false && yarnProjectImporter.CanGenerateStringsTable == false) ? DisplayStyle.Flex : DisplayStyle.None;
             }

@@ -286,7 +286,7 @@ namespace Yarn.Unity
             }
 
             if (yarnProject.NodeNames.Contains(startNode) == false) {
-                Debug.Log($"Can't start dialogue from node {startNode}: the Yarn Project {yarnProject.name} does not contain a node named \"{startNode}\"", yarnProject);
+                Debug.LogError($"Can't start dialogue from node {startNode}: the Yarn Project {yarnProject.name} does not contain a node named \"{startNode}\"", yarnProject);
                 return;
             }
 
@@ -1232,6 +1232,7 @@ namespace Yarn.Unity
                         // We encountered a whitespace character, but
                         // didn't have any characters queued up. Skip this
                         // character.
+                        currentComponent.Append((char)c);
                     }
 
                     continue;

@@ -27,6 +27,8 @@ namespace Yarn.Unity.Editor
         private SerializedProperty onPauseEndedProperty;
 
         private SerializedProperty typewriterEffectSpeedProperty;
+        private SerializedProperty autoPauseOnCommaProperty;
+        private SerializedProperty autoPauseOnSentenceProperty;
 
         private SerializedProperty continueButtonProperty;
 
@@ -53,6 +55,9 @@ namespace Yarn.Unity.Editor
             onPauseStartedProperty = serializedObject.FindProperty(nameof(LineView.onPauseStarted));
             onPauseEndedProperty = serializedObject.FindProperty(nameof(LineView.onPauseEnded));
             typewriterEffectSpeedProperty = serializedObject.FindProperty(nameof(LineView.typewriterEffectSpeed));
+            autoPauseOnCommaProperty = serializedObject.FindProperty(nameof(LineView.autoPauseOnComma));
+            autoPauseOnSentenceProperty = serializedObject.FindProperty(nameof(LineView.autoPauseOnSentence));
+
 
             continueButtonProperty = serializedObject.FindProperty(nameof(LineView.continueButton));
 
@@ -102,6 +107,8 @@ namespace Yarn.Unity.Editor
                 EditorGUILayout.PropertyField(onPauseStartedProperty);
                 EditorGUILayout.PropertyField(onPauseEndedProperty);
                 EditorGUILayout.PropertyField(typewriterEffectSpeedProperty);
+                EditorGUILayout.PropertyField(autoPauseOnCommaProperty);
+                EditorGUILayout.PropertyField(autoPauseOnSentenceProperty);
                 EditorGUI.indentLevel -= 1;
             }
 

@@ -78,7 +78,7 @@ namespace Yarn.Unity
         /// dialogue lines.
         /// </summary>
         [SerializeField]
-        internal TextMeshProUGUI lineText = null;
+        public TextMeshProUGUI lineText = null;
 
         /// <summary>
         /// Controls whether the <see cref="lineText"/> object will show the
@@ -138,7 +138,7 @@ namespace Yarn.Unity
         /// <seealso cref="onCharacterTyped"/>
         /// <seealso cref="typewriterEffectSpeed"/>
         [SerializeField]
-        internal bool useTypewriterEffect = false;
+        public bool useTypewriterEffect = false;
 
         /// <summary>
         /// A Unity Event that is called each time a character is revealed
@@ -176,7 +176,15 @@ namespace Yarn.Unity
         /// <seealso cref="useTypewriterEffect"/>
         [SerializeField]
         [Min(0)]
-        internal float typewriterEffectSpeed = 0f;
+        public float typewriterEffectSpeed = 0f;
+
+        [SerializeField]
+        public float autoPauseOnComma = 0.1f; // ','
+
+        [SerializeField]
+        public float autoPauseOnSentence = 0.2f; // '.', '!', '?'
+
+        // ^ TODO I guess this could be a configurable dict but really no need..
 
         /// <summary>
         /// The game object that represents an on-screen button that the user
@@ -200,7 +208,7 @@ namespace Yarn.Unity
         /// </summary>
         [SerializeField]
         [Min(0)]
-        internal float holdTime = 1f;
+        public float holdTime = 1f;
 
         /// <summary>
         /// Controls whether this Line View will wait for user input before
@@ -224,7 +232,7 @@ namespace Yarn.Unity
         /// when to advance to the next line.</para></para>
         /// </remarks>
         [SerializeField]
-        internal bool autoAdvance = false;
+        public bool autoAdvance = false;
 
         [SerializeField]
         internal MarkupPalette palette;
@@ -239,6 +247,9 @@ namespace Yarn.Unity
         /// A stop token that is used to interrupt the current animation.
         /// </summary>
         Effects.CoroutineInterruptToken currentStopToken = new Effects.CoroutineInterruptToken();
+
+        [SerializeField] bool _isPresenting = false;
+        public bool IsPresenting => _isPresenting;
 
         private void Awake()
         {
@@ -330,11 +341,16 @@ namespace Yarn.Unity
             canvasGroup.blocksRaycasts = true;
 
             onInterruptLineFinished();
+
+            // Debug.Log("InterruptLine: set _isPresenting false");
+            // _isPresenting = false;
         }
 
         /// <inheritdoc/>
         public override void RunLine(LocalizedLine dialogueLine, Action onDialogueLineFinished)
         {
+            // Debug.Log($"RunLine {dialogueLine.RawText}");
+            _isPresenting = true;
             // Stop any coroutines currently running on this line view (for
             // example, any other RunLine that might be running)
             StopAllCoroutines();
@@ -434,12 +450,14 @@ namespace Yarn.Unity
 
                     yield return StartCoroutine(Effects.PausableTypewriter(
                         lineText,
-                        typewriterEffectSpeed,
+                        () => typewriterEffectSpeed,
                         () => onCharacterTyped.Invoke(),
                         () => onPauseStarted.Invoke(),
                         () => onPauseEnded.Invoke(),
                         pauses,
-                        currentStopToken
+                        currentStopToken,
+                        () => autoPauseOnComma,
+                        () => autoPauseOnSentence
                     ));
 
                     if (currentStopToken.WasInterrupted)
@@ -478,6 +496,9 @@ namespace Yarn.Unity
             {
                 yield return new WaitForSeconds(holdTime);
             }
+
+            // Debug.Log("RunLineInternal: set _isPresenting false");
+            _isPresenting = false;
 
             if (autoAdvance == false)
             {
@@ -589,10 +610,19 @@ namespace Yarn.Unity
         {
             string lineOfText = line.Text;
             line.Attributes.Sort((a, b) => (b.Position.CompareTo(a.Position)));
-            foreach (var attribute in line.Attributes.Where(a => a.Name == "br"))
+            foreach (var attribute in line.Attributes)
             {
-                // we then replace the marker with the tmp <br>
-                lineOfText = lineOfText.Insert(attribute.Position, "<br>");
+                if (attribute.Name == "br")
+                {
+                    // we then replace the marker with the tmp <br>
+                    lineOfText = lineOfText.Insert(attribute.Position, "<br>");
+                }
+
+                // Insert non-breaking space for [nbsp]
+                if (attribute.Name == "nbsp")
+                {
+                    lineOfText = lineOfText.Insert(attribute.Position, " ");
+                }
             }
             return lineOfText;
         }
@@ -619,6 +649,7 @@ namespace Yarn.Unity
             // this is so we can build the stack up in the right positioning
             var attributes = line.Attributes;
             attributes.Sort((a, b) => (b.Position.CompareTo(a.Position)));
+
             foreach (var attribute in line.Attributes)
             {
                 // if we aren't a pause skip it
