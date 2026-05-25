@@ -43,7 +43,7 @@ namespace Yarn.Unity.Tests
             }
 
             // Add the test scene 
-            var dialogueRunnerTestScene = new EditorBuildSettingsScene(new UnityGUID(GUID), true);
+            var dialogueRunnerTestScene = new EditorBuildSettingsScene(new UnityGUID(sceneGuid), true);
             EditorBuildSettings.scenes = EditorBuildSettings.scenes.Concat(new[] { dialogueRunnerTestScene }).ToArray();
 #endif
         }
